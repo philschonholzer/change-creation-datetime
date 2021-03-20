@@ -1,4 +1,4 @@
-import Data.Bifunctor
+import Data.Bifunctor (Bifunctor (first))
 import Data.Function ((&))
 import Data.Time
 import System.Environment (getArgs)
@@ -7,12 +7,9 @@ import System.Process (callCommand, readProcess)
 main :: IO ()
 main = do
   args <- getArgs
-  let offset = realToFrac $ read $ head args :: NominalDiffTime
+  let offset = args & head & read & realToFrac :: NominalDiffTime
   creationdates <- lines <$> readProcess "stat" ("-c \"%w\"" : tail args) ""
   let creationdatesAndFiles = args & tail & zip creationdates
-  -- let creationdatesAndFiles = zip creationdates $ tail args
-  -- print creationdatesAndFiles
-  -- let newCreationData = map (first (changeCreationDate offset)) creationdatesAndFiles
   mapM_ (updateFile . first (addOffsetToDate offset)) creationdatesAndFiles
   putStrLn "Changed creation date."
 
@@ -20,7 +17,13 @@ cet :: TimeZone
 cet = hoursToTimeZone 1
 
 addOffsetToDate :: NominalDiffTime -> [Char] -> [Char]
-addOffsetToDate offset = show . formatToUs . utcToZonedTime cet . addUTCTime offset . parseUnixTime . removeQuotations
+addOffsetToDate offset =
+  show
+    . formatToUs
+    . utcToZonedTime cet
+    . addUTCTime offset
+    . parseUnixTime
+    . removeQuotations
 
 usFormat :: [Char]
 usFormat = "%m/%d/%Y %T"
